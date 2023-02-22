@@ -41,10 +41,4 @@ class TelegramBotClient
         return $response->toArray();
     }
 
-
-
-
-
-
-
 }
