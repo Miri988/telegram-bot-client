@@ -4,6 +4,8 @@ namespace Miri\TelegramBotClient\Service;
 
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\Multipart\FormDataPart;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class TelegramBotClient
@@ -13,6 +15,7 @@ class TelegramBotClient
     private const GET_UPDATES = 'getUpdates';
     private string $token;
     private HttpClientInterface $httpClient;
+    private const SEND_DOCUMENT = 'sendDocument';
 
     public function __construct(string $token)
     {
@@ -35,10 +38,35 @@ class TelegramBotClient
     ): array {
         $response = $this->httpClient->request(
             Request::METHOD_GET,
-            self::API . $this->token . '/' . self::SEND_MESSAGE . '?chat_id=' . $chatId . '&text=' . $text
+            $this->getUri(self::API . $this->token . '/' . self::SEND_MESSAGE . '?chat_id=' . $chatId . '&text=' . $text)
         );
 
         return $response->toArray();
+    }
+
+    public function sendDocument(string $chatId, string $filePath)
+    {
+        $formFields = [
+            'chat_id' => $chatId,
+            'document' => DataPart::fromPath($filePath),
+        ];
+        $formData = new FormDataPart($formFields);
+
+        $response = $this->httpClient->request(
+            Request::METHOD_POST,
+            $this->getUri(self::SEND_DOCUMENT),
+            [
+                'headers' => $formData->getPreparedHeaders()->toArray(),
+                'body' => $formData->bodyToIterable(),
+            ]
+        );
+
+        return $response->toArray();
+    } 
+
+    private function getUri(string $telegramMethod): string
+    {
+        return self::API . $this->token . '/' . $telegramMethod;
     }
 
 }
